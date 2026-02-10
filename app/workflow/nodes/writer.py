@@ -18,7 +18,7 @@ WRITER_SYSTEM = """你是哲学科普视频文案创作者。
       "id": 1,
       "text": "文案内容",
       "type": "hook|theory|science|analogy|twist|sublime",
-      "duration": 3.5,
+      "duration": 2.0,
       "emotion": "困惑|顿悟|震撼|温柔|沉重|共鸣",
       "image_prompt": "图像提示词"
     }
@@ -27,7 +27,7 @@ WRITER_SYSTEM = """你是哲学科普视频文案创作者。
 ```
 
 要求：
-- 6-10 句，每句 3-5 秒
+- 2-3 句（测试模式），每句 2-3 秒
 - 每句话都具有画面感
 - 避免 AI 味词汇
 """
@@ -48,7 +48,7 @@ async def writer_node(state: AgentState) -> dict:
 科学类型：{config.get('science_type', '不限')}
 风格：{config.get('style_preset', '暗黑治愈')}
 
-请生成 6-10 句哲学科普视频文案。
+请生成 2-3 句哲学科普视频文案（测试模式）。
 """
 
     try:

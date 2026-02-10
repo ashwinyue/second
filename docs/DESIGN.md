@@ -381,7 +381,7 @@ second/
 │   ├── videos/
 │   ├── audio/
 │   └── final/
-├── agent-web-template/       # React 前端
+├── web/                      # React 前端
 │   └── src/
 │       ├── lib/
 │       │   ├── api.ts        # SSE API 封装

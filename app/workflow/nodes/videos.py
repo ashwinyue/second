@@ -30,11 +30,14 @@ async def generate_video_node(task: dict) -> dict:
     from ...services import get_video_service
     video_service = get_video_service()
 
+    # 测试模式：限制视频时长为 2 秒
+    test_duration = min(scene.get("duration", 2.0), 2.0)
+
     try:
         video_url = await video_service.generate(
             image_url=image_url,
             prompt=scene["image_prompt"],
-            duration=scene["duration"],
+            duration=test_duration,
         )
 
         scene["video_url"] = video_url

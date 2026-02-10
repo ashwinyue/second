@@ -78,7 +78,7 @@ cp .env.example .env
 ### 前端设置
 
 ```bash
-cd agent-web-template
+cd web
 npm install
 npm run dev
 ```
@@ -114,7 +114,7 @@ second/
 │   ├── services/             # 外部服务
 │   └── api/                  # FastAPI 层
 ├── outputs/                  # 生成结果
-├── agent-web-template/       # React 前端
+├── web/                      # React 前端
 ├── docs/                     # 文档
 ├── pyproject.toml
 └── .env.example
