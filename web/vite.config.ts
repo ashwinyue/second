@@ -9,6 +9,10 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  define: {
+    // 生产环境标记
+    'import.meta.env.PROD': JSON.stringify(true),
+  },
   server: {
     port: 3000,
     proxy: {

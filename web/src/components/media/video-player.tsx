@@ -118,6 +118,9 @@ export function VideoPlayer({
         loop={loop}
         muted={isMuted}
         playsInline
+        preload="metadata"
+        // 启用硬件加速
+        style={{ willChange: 'transform' }}
       />
 
       {/* 控制栏 */}

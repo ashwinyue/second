@@ -829,6 +829,8 @@ function MessageBubble({
                 src={message.finalVideoUrl}
                 className="w-full h-full object-cover"
                 muted
+                preload="metadata"
+                playsInline
               />
               <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
                 <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
@@ -870,6 +872,8 @@ function MessageBubble({
                       src={scene.videoUrl}
                       className="w-full h-full object-cover"
                       muted
+                      preload="metadata"
+                      playsInline
                     />
                     <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
                       <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center">
