@@ -2,8 +2,8 @@
 状态定义
 LangGraph TypedDict + Annotated Reducer
 """
-from typing import TypedDict, NotRequired, Required, Annotated
-from typing_extensions import deprecated
+from typing import TypedDict, Annotated
+from typing_extensions import deprecated, NotRequired, Required
 from operator import add
 
 
