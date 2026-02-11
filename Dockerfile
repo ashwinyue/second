@@ -33,7 +33,7 @@ CMD ["uv", "run", "uvicorn", "app.api.main:app", "--host", "0.0.0.0", "--port", 
 FROM node:18-alpine AS builder
 WORKDIR /app
 COPY web/package*.json ./
-RUN npm ci --only=production
+RUN npm ci
 COPY web ./
 RUN npm run build
 
