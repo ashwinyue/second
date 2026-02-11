@@ -3,8 +3,11 @@ TTS 服务 - 火山引擎豆包 TTS 2.0 语音合成
 使用 HTTP 协议
 """
 import base64
+import hashlib
+import hmac
 import json
 import logging
+import time
 import uuid
 import httpx
 from pathlib import Path
@@ -22,17 +25,28 @@ class TTSService:
         settings = get_settings()
         self.appid = settings.tts_appid
         self.access_token = settings.tts_access_token
+        self.secret_key = settings.tts_secret_key
         self.cluster = settings.tts_cluster
         self.endpoint = settings.tts_endpoint or "https://openspeech.bytedance.com/api/v1/tts"
-        self.output_dir = settings.output_dir / "audio"
-        self.output_dir.mkdir(parents=True, exist_ok=True)
 
-        # 默认配置
-        self.voice_type = settings.tts_voice or "zh_male_dayi_saturn_bigtts"
+        # 默认配置 - 女声音色
+        self.voice_type = settings.tts_voice or "zh_female_jitangnv_saturn_bigtts"
         self.encoding = "mp3"
         self.speed_ratio = 0.88  # 哲学科普推荐语速
         self.volume_ratio = 1.0
         self.pitch_ratio = 1.0
+
+    def _generate_signature(self, reqid: str, timestamp: str) -> str:
+        """生成签名"""
+        # 签名字符串格式: appid + reqid + timestamp + cluster
+        sign_str = f"{self.appid}{reqid}{timestamp}{self.cluster}"
+        # 使用 secret_key 进行 HMAC-SHA256 签名
+        signature = hmac.new(
+            self.secret_key.encode('utf-8'),
+            sign_str.encode('utf-8'),
+            hashlib.sha256
+        ).hexdigest()
+        return signature
 
     async def synthesize(
         self,
@@ -41,7 +55,7 @@ class TTSService:
         speed_ratio: Optional[float] = None,
     ) -> str:
         """
-        合成语音
+        合成语音并上传到 MinIO
 
         Args:
             text: 要转换的文本
@@ -49,7 +63,7 @@ class TTSService:
             speed_ratio: 语速（可选）
 
         Returns:
-            音频文件路径
+            MinIO 公开访问 URL
         """
         if voice_type:
             self.voice_type = voice_type
@@ -57,6 +71,10 @@ class TTSService:
             self.speed_ratio = speed_ratio
 
         reqid = str(uuid.uuid4())
+        timestamp = str(int(time.time()))
+
+        # 生成签名
+        signature = self._generate_signature(reqid, timestamp)
 
         # 构建请求
         request_json = {
@@ -83,7 +101,7 @@ class TTSService:
             },
         }
 
-        # 构建请求头
+        # 构建请求头 - 使用 Authorization 头部（注意分号后有空格）
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer; {self.access_token}",
@@ -114,16 +132,20 @@ class TTSService:
                 # 解码 base64 音频数据
                 audio_data = base64.b64decode(result["data"])
 
-                # 保存音频文件
-                output_path = self.output_dir / f"{reqid}.mp3"
-                output_path.write_bytes(audio_data)
-
-                logger.info(f"音频生成成功: {output_path}, 大小: {len(audio_data)} bytes")
-
                 if len(audio_data) == 0:
                     raise Exception("生成的音频数据为空")
 
-                return str(output_path)
+                logger.info(f"音频生成成功, 大小: {len(audio_data)} bytes")
+
+                # 直接上传到 MinIO
+                from .storage import get_storage_service
+                storage = get_storage_service()
+
+                filename = f"{reqid}.mp3"
+                minio_url = storage.upload_bytes(audio_data, filename, "audio/mpeg")
+                logger.info(f"音频已上传到 MinIO: {minio_url}")
+
+                return minio_url
 
         except httpx.HTTPError as e:
             logger.error(f"HTTP 请求失败: {e}")

@@ -2,7 +2,27 @@
 状态定义
 LangGraph TypedDict + Annotated Reducer
 """
-from typing import TypedDict, NotRequired, Required
+from typing import TypedDict, NotRequired, Required, Annotated
+from typing_extensions import deprecated
+from operator import add
+
+
+def merge_image_tasks(left: dict | None, right: dict | None) -> dict:
+    """合并图像任务结果"""
+    if not left:
+        return right or {}
+    if not right:
+        return left
+    return {**left, **right}
+
+
+def merge_video_tasks(left: dict | None, right: dict | None) -> dict:
+    """合并视频任务结果"""
+    if not left:
+        return right or {}
+    if not right:
+        return left
+    return {**left, **right}
 
 
 class Scene(TypedDict):
@@ -13,7 +33,8 @@ class Scene(TypedDict):
     duration: float
     emotion: str
     image_prompt: str
-    image_url: NotRequired[str]
+    image_url: NotRequired[str]  # 本地路径
+    image_cloud_url: NotRequired[str]  # 云存储 URL（用于视频生成）
     video_url: NotRequired[str]
 
 
@@ -31,3 +52,7 @@ class AgentState(TypedDict):
     audio_url: NotRequired[str]
     final_video_url: NotRequired[str]
     errors: NotRequired[list[str]]
+    # 图像任务结果（使用 reducer 合并）
+    image_tasks: Annotated[dict, merge_image_tasks]
+    # 视频任务结果（使用 reducer 合并）
+    video_tasks: Annotated[dict, merge_video_tasks]

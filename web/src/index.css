@@ -1,0 +1,202 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* 亮色主题 */
+    --background: 0 0% 100%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    /* 主色调 - 紫蓝色系 */
+    --primary: 263 70% 50%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+
+    --accent: 263 70% 50%;
+    --accent-foreground: 222 47% 11%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 263 70% 50%;
+
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    /* 暗色主题 - 科技感深色 */
+    --background: 220 30% 8%;
+    --foreground: 210 40% 98%;
+
+    --card: 220 30% 10%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 220 30% 10%;
+    --popover-foreground: 210 40% 98%;
+
+    /* 主色调 - 紫蓝色系，科技感 */
+    --primary: 263 70% 50%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 217 30% 20%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217 30% 15%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 263 70% 50%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217 30% 18%;
+    --input: 217 30% 18%;
+    --ring: 263 70% 50%;
+
+    --radius: 0.75rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* 自定义滚动条 */
+  ::-webkit-scrollbar {
+    @apply w-2;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-muted;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-primary/30 rounded-full hover:bg-primary/50;
+  }
+
+  /* 玻璃态效果 */
+  .glass {
+    @apply bg-card/80 backdrop-blur-xl border border-border/50;
+  }
+
+  /* 霓虹发光效果 */
+  .neon-border {
+    box-shadow:
+      0 0 5px theme('colors.primary'),
+      0 0 20px theme('colors.primary');
+  }
+
+  .neon-text {
+    text-shadow:
+      0 0 10px theme('colors.primary'),
+      0 0 20px theme('colors.primary'),
+      0 0 40px theme('colors.primary');
+  }
+
+  /* 渐变背景 */
+  .gradient-bg {
+    background: linear-gradient(
+      135deg,
+      hsl(220, 30%, 8%) 0%,
+      hsl(263, 50%, 15%) 50%,
+      hsl(220, 30%, 8%) 100%
+    );
+  }
+
+  /* 亮色模式渐变背景 */
+  .light .gradient-bg {
+    background: linear-gradient(
+      135deg,
+      hsl(220, 20%, 96%) 0%,
+      hsl(263, 50%, 92%) 50%,
+      hsl(220, 20%, 96%) 100%
+    );
+  }
+
+  /* 网格背景 */
+  .grid-bg {
+    background-image:
+      linear-gradient(to right, hsl(217, 30%, 18%) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(217, 30%, 18%) 1px, transparent 1px);
+    background-size: 50px 50px;
+  }
+
+  /* 亮色模式网格背景 */
+  .light .grid-bg {
+    background-image:
+      linear-gradient(to right, hsl(214, 32%, 90%) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(214, 32%, 90%) 1px, transparent 1px);
+    background-size: 50px 50px;
+  }
+
+  /* 动画效果 */
+  @keyframes shimmer {
+    0% {
+      background-position: -1000px 0;
+    }
+    100% {
+      background-position: 1000px 0;
+    }
+  }
+
+  .shimmer {
+    animation: shimmer 2s infinite;
+    background: linear-gradient(
+      to right,
+      transparent 0%,
+      hsl(263, 70%, 50%, 0.1) 50%,
+      transparent 100%
+    );
+    background-size: 1000px 100%;
+  }
+}
+
+@layer components {
+  /* 按钮变体 */
+  .btn-primary {
+    @apply bg-primary text-primary-foreground hover:bg-primary/90;
+    @apply shadow-lg shadow-primary/30 transition-all duration-300;
+    @apply hover:shadow-primary/50 hover:scale-105;
+  }
+
+  .btn-ghost {
+    @apply hover:bg-accent/10 hover:text-accent;
+    @apply transition-all duration-200;
+  }
+
+  /* 卡片样式 */
+  .card-tech {
+    @apply glass rounded-xl p-6;
+    @apply hover:shadow-2xl hover:shadow-primary/20;
+    @apply transition-all duration-300 hover:-translate-y-1;
+    @apply border border-primary/20;
+  }
+
+  /* 输入框样式 */
+  .input-tech {
+    @apply bg-muted/50 border-border rounded-lg px-4 py-3;
+    @apply focus:outline-none focus:ring-2 focus:ring-primary/50;
+    @apply focus:border-primary transition-all duration-200;
+    @apply placeholder:text-muted-foreground;
+  }
+}

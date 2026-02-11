@@ -4,7 +4,7 @@
 import logging
 
 from ...state import AgentState
-from ...style import generate_style_seed
+from ...style_base import generate_style_seed
 
 logger = logging.getLogger(__name__)
 

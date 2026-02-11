@@ -28,11 +28,13 @@ def _calculate_progress(state: AgentState) -> float:
 
     # 步骤权重
     step_weights = {
-        "init": 0.05,
-        "writing": 0.15,
-        "imaging": 0.40,
-        "animating": 0.70,
-        "composing": 0.90,
+        "init": 0.02,
+        "writing": 0.10,
+        "imaging": 0.30,
+        "animating": 0.55,
+        "composing": 0.70,
+        "narrating": 0.85,
+        "adding_audio": 0.95,
         "done": 1.0,
     }
 
@@ -60,9 +62,11 @@ def _get_step_message(step: str) -> str:
     messages = {
         "init": "初始化...",
         "writing": "正在生成文案...",
-        "imaging": "正在生成图像...",
-        "animating": "正在生成视频动画...",
-        "composing": "正在合成视频...",
+        "imaging": "正在生成场景图像...",
+        "animating": "正在生成分镜视频...",
+        "composing": "正在合并视频片段...",
+        "narrating": "正在生成配音...",
+        "adding_audio": "正在合并配音到视频...",
         "done": "完成！",
     }
     return messages.get(step, "处理中...")
@@ -70,9 +74,11 @@ def _get_step_message(step: str) -> str:
 
 async def _stream_generation(
     topic: str,
-    philosopher: str | None = None,
-    science_type: str | None = None,
-    style_preset: str = "dark_healing",
+    style: str = "minimal",
+    theme: str | None = None,
+    philosopher: str | None = None,  # 向后兼容
+    science_type: str | None = None,  # 向后兼容
+    style_preset: str | None = None,  # 向后兼容
 ) -> AsyncGenerator[str, None]:
     """
     流式生成视频，通过 SSE 返回进度
@@ -86,10 +92,25 @@ async def _stream_generation(
     task_id = uuid.uuid4().hex
     graph = create_graph()
 
+    # 处理向后兼容的参数映射
+    final_style = style
+    final_theme = theme
+
+    if philosopher:
+        # 如果指定了philosopher，使用camus风格
+        final_style = "camus"
+        final_theme = final_theme or philosopher
+    elif style_preset:
+        # style_preset映射到style
+        final_style = style_preset
+
     # 初始状态
     initial_state: AgentState = {
         "config": {
             "topic": topic,
+            "style": final_style,
+            "theme": final_theme or "",
+            # 向后兼容的旧参数
             "philosopher": philosopher,
             "science_type": science_type,
             "style_preset": style_preset,
@@ -113,6 +134,7 @@ async def _stream_generation(
         # 流式执行工作流
         final_state = None
         event_count = 0
+        writing_sent = False  # 标记文案是否已发送
 
         async for event in graph.astream(initial_state, config):
             event_count += 1
@@ -135,6 +157,23 @@ async def _stream_generation(
                     "message": _get_step_message(step),
                 })
 
+                # 文案生成完成事件（首次进入 imaging 步骤时发送）
+                if step == "imaging" and "scenes" in state and not writing_sent:
+                    writing_sent = True
+                    scenes = state["scenes"]
+                    yield _sse_event("writing_done", {
+                        "task_id": task_id,
+                        "scenes": [
+                            {
+                                "id": s.get("id"),
+                                "text": s.get("text", ""),
+                                "type": s.get("type", ""),
+                                "emotion": s.get("emotion", ""),
+                            }
+                            for s in scenes
+                        ],
+                    })
+
                 # 场景数据更新
                 if "scenes" in state:
                     scenes = state["scenes"]
@@ -148,7 +187,7 @@ async def _stream_generation(
                             yield _sse_event("scene", {
                                 "task_id": task_id,
                                 "scene_id": scene_id,
-                                "type": "image",
+                                "scene_type": "image",
                                 "url": image_url,
                                 "text": scene.get("text", ""),
                                 "emotion": scene.get("emotion", ""),
@@ -159,7 +198,7 @@ async def _stream_generation(
                             yield _sse_event("scene", {
                                 "task_id": task_id,
                                 "scene_id": scene_id,
-                                "type": "video",
+                                "scene_type": "video",
                                 "url": video_url,
                             })
 
@@ -168,13 +207,10 @@ async def _stream_generation(
             final_video_url = final_state.get("final_video_url")
 
             if final_video_url:
-                # 提取文件名
-                from pathlib import Path
-                filename = Path(final_video_url).name
-
+                # 直接返回 MinIO URL
                 yield _sse_event("done", {
                     "task_id": task_id,
-                    "final_video_url": f"/outputs/final/{filename}",
+                    "final_video_url": final_video_url,
                     "message": "视频生成完成！",
                 })
             else:
@@ -215,7 +251,7 @@ async def generate_video_stream(request: GenerationRequest):
     ```bash
     curl -N http://localhost:8001/api/v1/generate \
       -H "Content-Type: application/json" \
-      -d '{"topic": "自由意志"}'
+      -d '{"topic": "生命的意义", "style": "camus", "theme": "荒诞"}'
     ```
 
     **SSE 事件类型**:
@@ -225,14 +261,24 @@ async def generate_video_stream(request: GenerationRequest):
     - `done`: 完成，返回最终视频 URL
     - `error`: 错误信息
 
+    **请求参数**:
     - **topic**: 视频主题（必需）
-    - **philosopher**: 指定哲学家（可选）
-    - **science_type**: 关联科学类型（可选）
-    - **style_preset**: 风格预设，默认 dark_healing
+    - **style**: 风格名称（默认 minimal）
+      - camus: 加缪荒诞哲学 - 深度拷问、诗意克制
+      - healing: 温暖治愈 - 亲切陪伴、温柔鼓励
+      - knowledge: 硬核科普 - 权威数据、逻辑清晰
+      - humor: 幽默搞笑 - 反转套路、轻松调侃
+      - growth: 成长觉醒 - 认知升级、行动导向
+      - minimal: 极简金句 - 短小精悍、直击人心
+    - **theme**: 可选的子主题（用于某些风格的细分）
+    - **philosopher**: [向后兼容] 指定哲学家（映射到camus风格）
+    - **science_type**: [向后兼容] 关联科学类型
     """
     return StreamingResponse(
         _stream_generation(
             topic=request.topic,
+            style=request.style,
+            theme=request.theme,
             philosopher=request.philosopher,
             science_type=request.science_type,
             style_preset=request.style_preset,
@@ -282,6 +328,8 @@ async def download_video(filename: str) -> FileResponse:
 async def health_check() -> HealthResponse:
     """
     检查服务健康状态和各服务可用性
+
+    返回可用的风格列表
     """
     settings = get_settings()
 
@@ -293,8 +341,12 @@ async def health_check() -> HealthResponse:
         "tts": bool(settings.tts_appid and settings.tts_access_token),
     }
 
+    from ..style import get_available_styles
+    available_styles = get_available_styles()
+
     return HealthResponse(
         status="healthy" if all(services.values()) else "degraded",
-        version="1.0.0",
+        version="2.0.0",
         services=services,
+        available_styles=available_styles,
     )
